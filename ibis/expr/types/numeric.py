@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, TypeVar
 
 from public import public
 
@@ -14,6 +14,9 @@ from ibis.util import deprecated
 
 if TYPE_CHECKING:
     import ibis.expr.types as ir
+
+
+T = TypeVar("T", "Value", "Column", "Scalar")
 
 
 @public
@@ -116,51 +119,7 @@ class NumericValue(Value):
         """
         return ops.Round(self, digits).to_expr()
 
-    def log(self, base: NumericValue | None = None, /) -> NumericValue:
-        r"""Compute $\log_{\texttt{base}}\left(\texttt{self}\right)$.
-
-        Parameters
-        ----------
-        base
-            The base of the logarithm. If `None`, base `e` is used.
-
-        Returns
-        -------
-        NumericValue
-            Logarithm of `arg` with base `base`
-
-        Examples
-        --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> from math import e
-        >>> t = ibis.memtable({"values": [e, e**2, e**3]})
-        >>> t.values.log()
-        ┏━━━━━━━━━━━━━┓
-        ┃ Log(values) ┃
-        ┡━━━━━━━━━━━━━┩
-        │ float64     │
-        ├─────────────┤
-        │         1.0 │
-        │         2.0 │
-        │         3.0 │
-        └─────────────┘
-
-
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.memtable({"values": [10, 100, 1000]})
-        >>> t.values.log(10)
-        ┏━━━━━━━━━━━━━━━━━┓
-        ┃ Log(values, 10) ┃
-        ┡━━━━━━━━━━━━━━━━━┩
-        │ float64         │
-        ├─────────────────┤
-        │             1.0 │
-        │             2.0 │
-        │             3.0 │
-        └─────────────────┘
-        """
+    def log(self: T, base: Value | None = None, /) -> T:
         return ops.Log(self, base).to_expr()
 
     def clip(

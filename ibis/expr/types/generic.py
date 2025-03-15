@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from abc import abstractmethod
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Literal, overload
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
 
 from public import public
 
@@ -25,6 +26,7 @@ if TYPE_CHECKING:
     import polars as pl
     import pyarrow as pa
     import rich.table
+    from typing_extensions import Self
 
     import ibis.expr.schema as sch
     import ibis.expr.types as ir
@@ -34,12 +36,14 @@ if TYPE_CHECKING:
 
 _SENTINEL = object()
 
+T = TypeVar("T", "Value", "Column", "Scalar")
+
 
 @public
 class Value(Expr):
     """Base class for a data generating expression having a known type."""
 
-    def name(self, name: str, /) -> Value:
+    def name(self: Self, name: str, /) -> Self:
         """Rename an expression to `name`.
 
         Parameters
@@ -878,7 +882,7 @@ class Value(Expr):
         except com.IbisInputError:
             return bind(_)
 
-    def isnull(self) -> ir.BooleanValue:
+    def isnull(self: T) -> T:
         """Return whether this expression is NULL.
 
         Examples
@@ -1362,6 +1366,55 @@ class Value(Expr):
             The result of executing the expression as a pandas DataFrame
         """
         return self.execute(params=params, limit=limit, **kwargs)
+
+    # --- Type-specific operations
+    @abstractmethod
+    def log(self: T, base: Value | None = None, /) -> T:
+        r"""Compute $\log_{\texttt{base}}\left(\texttt{self}\right)$.
+
+        Parameters
+        ----------
+        base
+            The base of the logarithm. If `None`, base `e` is used.
+
+        Returns
+        -------
+        NumericValue
+            Logarithm of `arg` with base `base`
+
+        Examples
+        --------
+        >>> import ibis
+        >>> ibis.options.interactive = True
+        >>> from math import e
+        >>> t = ibis.memtable({"values": [e, e**2, e**3]})
+        >>> t.values.log()
+        ┏━━━━━━━━━━━━━┓
+        ┃ Log(values) ┃
+        ┡━━━━━━━━━━━━━┩
+        │ float64     │
+        ├─────────────┤
+        │         1.0 │
+        │         2.0 │
+        │         3.0 │
+        └─────────────┘
+
+
+        >>> import ibis
+        >>> ibis.options.interactive = True
+        >>> t = ibis.memtable({"values": [10, 100, 1000]})
+        >>> t.values.log(10)
+        ┏━━━━━━━━━━━━━━━━━┓
+        ┃ Log(values, 10) ┃
+        ┡━━━━━━━━━━━━━━━━━┩
+        │ float64         │
+        ├─────────────────┤
+        │             1.0 │
+        │             2.0 │
+        │             3.0 │
+        └─────────────────┘
+        """
+        ...
 
 
 @public
